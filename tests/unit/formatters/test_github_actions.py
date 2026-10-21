@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 import io
+import unittest
 from unittest import mock
 
 from bandit.formatters import github_actions
 
 
-class GitHubActionsFormatterTests:
+class GitHubActionsFormatterTests(unittest.TestCase):
     def test_annotation_escapes_workflow_command_values(self):
         annotation = github_actions._annotation(
             {
@@ -17,10 +18,10 @@ class GitHubActionsFormatterTests:
             }
         )
 
-        assert annotation == (
+        self.assertEqual(annotation, (
             "::error file=src/a%2Cb.py,line=12,title=B301%3Aunsafe::"
             "bad %25 value%0Asecond line"
-        )
+        ))
 
     def test_report_emits_annotations_and_skipped_files(self):
         manager = mock.Mock()
@@ -42,10 +43,10 @@ class GitHubActionsFormatterTests:
 
         github_actions.report(manager, output, 1, 1)
 
-        assert output.getvalue().splitlines() == [
+        self.assertEqual(output.getvalue().splitlines(), [
             "::warning file=missing.py::Bandit skipped file: file not found",
             "::warning file=app.py,line=7,title=B101::Use of assert detected.",
-        ]
+        ])
         manager.get_issue_list.assert_called_once_with(
             sev_level=1, conf_level=1
         )
@@ -61,6 +62,6 @@ class GitHubActionsFormatterTests:
             }
         )
 
-        assert annotation.startswith(
+        self.assertTrue(annotation.startswith(
             "::notice file=app.py,line=1,title=B999::"
-        )
+        ))
