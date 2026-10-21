@@ -91,7 +91,10 @@ class GitHubActionsFormatterTests(unittest.TestCase):
         self.assertEqual(
             output.getvalue().splitlines(),
             [
-                "::warning file=missing.py::Bandit skipped file: file not found",
+                (
+                    "::warning file=missing.py::Bandit skipped file: "
+                    "file not found"
+                ),
                 "::warning file=app.py,line=7,endLine=7,title=B101::"
                 "Use of assert detected.",
             ],
