@@ -75,9 +75,9 @@ def report(manager, fileobj, sev_level, conf_level, lines=-1):
     )
     if not isinstance(results, list):
         # Baseline output groups matching findings into a mapping.
-        issues = []
-        for baseline_issue, candidates in results.items():
-            issues.extend(candidates if candidates else [baseline_issue])
+        # The mapping keys are the baseline findings; candidates are
+        # alternative matches used by Bandit's baseline formatter.
+        issues = list(results.keys())
     else:
         issues = results
 
