@@ -7,12 +7,12 @@ from bandit.formatters import github_actions
 
 
 class GitHubActionsFormatterTests(unittest.TestCase):
-    def test_annotation_escapes_values_and_includes_source_range(self):
+    def test_annotation_escapes_values_and_includes_same_line_columns(self):
         annotation = github_actions._annotation(
             {
                 "filename": "src/a,b.py",
                 "line_number": 12,
-                "line_range": [12, 13],
+                "line_range": [12],
                 "col_offset": 7,
                 "end_col_offset": 15,
                 "test_id": "B301:unsafe",
@@ -23,9 +23,46 @@ class GitHubActionsFormatterTests(unittest.TestCase):
 
         self.assertEqual(
             annotation,
-            "::error file=src/a%2Cb.py,line=12,endLine=13,col=8,"
+            "::error file=src/a%2Cb.py,line=12,endLine=12,col=8,"
             "endColumn=15,title=B301%3Aunsafe::"
             "bad %25 value%0Asecond line",
+        )
+
+    def test_multiline_annotation_omits_columns(self):
+        annotation = github_actions._annotation(
+            {
+                "filename": "app.py",
+                "line_number": 7,
+                "line_range": [7, 8],
+                "col_offset": 3,
+                "end_col_offset": 10,
+                "test_id": "B301",
+                "issue_severity": "HIGH",
+                "issue_text": "Potential issue",
+            }
+        )
+
+        self.assertEqual(
+            annotation,
+            "::error file=app.py,line=7,endLine=8,title=B301::Potential issue",
+        )
+
+    def test_file_level_annotation_omits_invalid_line_zero(self):
+        annotation = github_actions._annotation(
+            {
+                "filename": "app.py",
+                "line_number": 0,
+                "line_range": [0, 1],
+                "col_offset": 0,
+                "end_col_offset": 0,
+                "test_id": "B999",
+                "issue_severity": "LOW",
+                "issue_text": "File-level finding",
+            }
+        )
+
+        self.assertEqual(
+            annotation, "::notice file=app.py,title=B999::File-level finding"
         )
 
     def test_report_emits_annotations_and_skipped_files(self):
