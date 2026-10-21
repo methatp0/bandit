@@ -3,7 +3,8 @@
 
 This formatter emits annotations that GitHub displays inline in pull requests
 and in the Actions log. See:
-https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
+https://docs.github.com/en/actions/using-workflows/
+workflow-commands-for-github-actions
 """
 
 import logging
@@ -66,7 +67,15 @@ def _annotation(issue):
 
     # GitHub does not accept column properties for a multi-line annotation.
     column = issue.get("col_offset")
-    if valid_line and not multiline and column is not None and int(column) >= 0:
+    line_range = issue.get("line_range") or []
+    column_matches_line = not line_range or int(line_range[0]) == line
+    if (
+        valid_line
+        and not multiline
+        and column_matches_line
+        and column is not None
+        and int(column) >= 0
+    ):
         column = int(column)
         # Bandit's AST offsets are zero-based; workflow annotations are 1-based.
         properties.append(f"col={column + 1}")
@@ -107,5 +116,10 @@ def report(manager, fileobj, sev_level, conf_level, lines=-1):
         data = item.as_dict(max_lines=lines)
         fileobj.write(_annotation(data) + "\n")
 
-    if hasattr(fileobj, "name") and fileobj.name not in ("<stdout>", "<stderr>"):
-        LOG.info("GitHub Actions annotations written to file: %s", fileobj.name)
+    if hasattr(fileobj, "name") and fileobj.name not in (
+        "<stdout>",
+        "<stderr>",
+    ):
+        LOG.info(
+            "GitHub Actions annotations written to file: %s", fileobj.name
+        )
