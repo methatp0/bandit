@@ -51,18 +51,22 @@ def _annotation(issue):
         properties.append(f"file={_escape_property(filename)}")
 
     line = issue.get("line_number")
-    if line is not None:
-        line = int(line)
-        properties.append(f"line={line}")
+    line = int(line) if line is not None else None
+    valid_line = line is not None and line >= 1
+    multiline = False
 
+    if valid_line:
+        properties.append(f"line={line}")
         line_range = issue.get("line_range") or []
         if line_range:
             end_line = max(int(item) for item in line_range)
             if end_line >= line:
                 properties.append(f"endLine={end_line}")
+                multiline = end_line > line
 
+    # GitHub does not accept column properties for a multi-line annotation.
     column = issue.get("col_offset")
-    if column is not None and int(column) >= 0:
+    if valid_line and not multiline and column is not None and int(column) >= 0:
         column = int(column)
         # Bandit's AST offsets are zero-based; workflow annotations are 1-based.
         properties.append(f"col={column + 1}")
@@ -94,7 +98,7 @@ def report(manager, fileobj, sev_level, conf_level, lines=-1):
         sev_level=sev_level, conf_level=conf_level
     )
     if not isinstance(results, list):
-        # Baseline results map unmatched baseline findings to candidates.
+        # Baseline results map unmatched findings to their candidate issues.
         issues = list(results.keys())
     else:
         issues = results
