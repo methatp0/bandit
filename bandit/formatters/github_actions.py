@@ -1,10 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """GitHub Actions workflow-command formatter.
 
-This formatter emits annotations that GitHub displays inline in pull requests
-and in the Actions log. See:
-https://docs.github.com/en/actions/using-workflows/
-workflow-commands-for-github-actions
+This formatter emits annotations that GitHub displays in the Actions log and
+pull requests, following the GitHub Actions workflow-command syntax.
 """
 
 import logging
@@ -77,7 +75,7 @@ def _annotation(issue):
         and int(column) >= 0
     ):
         column = int(column)
-        # Bandit's AST offsets are zero-based; workflow annotations are 1-based.
+        # Bandit's AST offsets are zero-based; workflow columns start at one.
         properties.append(f"col={column + 1}")
 
         end_column = issue.get("end_col_offset")
