@@ -7,21 +7,26 @@ from bandit.formatters import github_actions
 
 
 class GitHubActionsFormatterTests(unittest.TestCase):
-    def test_annotation_escapes_workflow_command_values(self):
+    def test_annotation_escapes_values_and_includes_source_range(self):
         annotation = github_actions._annotation(
             {
                 "filename": "src/a,b.py",
                 "line_number": 12,
+                "line_range": [12, 13],
+                "col_offset": 7,
+                "end_col_offset": 15,
                 "test_id": "B301:unsafe",
                 "issue_severity": "HIGH",
                 "issue_text": "bad % value\nsecond line",
             }
         )
 
-        self.assertEqual(annotation, (
-            "::error file=src/a%2Cb.py,line=12,title=B301%3Aunsafe::"
-            "bad %25 value%0Asecond line"
-        ))
+        self.assertEqual(
+            annotation,
+            "::error file=src/a%2Cb.py,line=12,endLine=13,col=8,"
+            "endColumn=15,title=B301%3Aunsafe::"
+            "bad %25 value%0Asecond line",
+        )
 
     def test_report_emits_annotations_and_skipped_files(self):
         manager = mock.Mock()
@@ -32,6 +37,9 @@ class GitHubActionsFormatterTests(unittest.TestCase):
                     "as_dict.return_value": {
                         "filename": "app.py",
                         "line_number": 7,
+                        "line_range": [7],
+                        "col_offset": -1,
+                        "end_col_offset": 0,
                         "test_id": "B101",
                         "issue_severity": "MEDIUM",
                         "issue_text": "Use of assert detected.",
@@ -43,15 +51,19 @@ class GitHubActionsFormatterTests(unittest.TestCase):
 
         github_actions.report(manager, output, 1, 1)
 
-        self.assertEqual(output.getvalue().splitlines(), [
-            "::warning file=missing.py::Bandit skipped file: file not found",
-            "::warning file=app.py,line=7,title=B101::Use of assert detected.",
-        ])
+        self.assertEqual(
+            output.getvalue().splitlines(),
+            [
+                "::warning file=missing.py::Bandit skipped file: file not found",
+                "::warning file=app.py,line=7,endLine=7,title=B101::"
+                "Use of assert detected.",
+            ],
+        )
         manager.get_issue_list.assert_called_once_with(
             sev_level=1, conf_level=1
         )
 
-    def test_low_severity_uses_notice(self):
+    def test_low_severity_defaults_to_notice(self):
         annotation = github_actions._annotation(
             {
                 "filename": "app.py",
@@ -62,6 +74,6 @@ class GitHubActionsFormatterTests(unittest.TestCase):
             }
         )
 
-        self.assertTrue(annotation.startswith(
-            "::notice file=app.py,line=1,title=B999::"
-        ))
+        self.assertTrue(
+            annotation.startswith("::notice file=app.py,line=1,title=B999::")
+        )
